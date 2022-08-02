@@ -3,49 +3,57 @@ use colored::*;
 
 const HEADER_LENGTH: usize = 80;
 
+fn get_label(kind: &ErrorKind) -> String {
+    match kind {
+        ErrorKind::Error => "Error".to_string(),
+        ErrorKind::Warning => "Warning".to_string(),
+        ErrorKind::Improvement => "Improvement".to_string(),
+        ErrorKind::CodeStyle => "Code style".to_string(),
+    }
+}
+
+fn colorize_label(string: String, kind: &ErrorKind) -> String {
+    match kind {
+        ErrorKind::Error => string.red().bold().to_string(),
+        ErrorKind::Warning => string.yellow().bold().to_string(),
+        ErrorKind::Improvement => string.cyan().bold().to_string(),
+        ErrorKind::CodeStyle => string.cyan().bold().to_string(),
+    }
+}
+
 impl FriendlyError {
-    fn gen_error(&mut self) -> (String, usize) {
+    fn append_label(&mut self) -> usize {
         let mut output = String::new();
-        output.push_str("--- Error");
+        output.push_str("--- ");
+        output.push_str(&get_label(&self.data.kind));
         if let Some(code) = &self.data.error_code {
             output.push('(');
             output.push_str(code);
             output.push(')');
         }
         let length = output.len();
-        (output.red().bold().to_string(), length)
+        self.output
+            .push_str(&colorize_label(output, &self.data.kind));
+        length
     }
 
-    fn gen_warning(&mut self) -> (String, usize) {
-        let mut output = String::new();
-        output.push_str("--- Warning");
-        if let Some(code) = &self.data.error_code {
-            output.push('(');
-            output.push_str(code);
-            output.push(')');
-        }
-        let length = output.len();
-        (output.yellow().bold().to_string(), length)
-    }
-
-    pub fn print_header(&mut self) {
-        let mut header_length = 0;
-        let (type_string, length) = match self.data.kind {
-            ErrorKind::Error => self.gen_error(),
-            ErrorKind::Warning => self.gen_warning(),
-        };
-        header_length += length;
-        self.output.push_str(&type_string);
+    fn append_title(&mut self) -> usize {
         if let Some(title) = &self.data.title {
             self.output.push_str(": ");
             self.output.push_str(title);
-            header_length += title.len() + 2;
+            return title.len() + 2;
         }
+        0
+    }
+
+    pub fn print_header(&mut self) {
+        let mut header_length = HEADER_LENGTH;
+        header_length -= self.append_label();
+        header_length -= self.append_title();
         self.output.push(' ');
-        header_length += 1;
-        while header_length < HEADER_LENGTH {
+        header_length -= 1;
+        for _ in 0..header_length {
             self.output.push('-');
-            header_length += 1;
         }
     }
 }

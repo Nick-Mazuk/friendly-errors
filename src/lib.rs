@@ -7,6 +7,8 @@ mod header;
 pub enum ErrorKind {
     Error,
     Warning,
+    Improvement,
+    CodeStyle,
 }
 
 struct ErrorData {
