@@ -1,5 +1,7 @@
+pub use code_snippet::CodeSnippet;
+
+mod code_snippet;
 mod doc_url;
-mod file_url;
 mod header;
 
 pub enum ErrorKind {
@@ -8,12 +10,10 @@ pub enum ErrorKind {
 }
 
 struct ErrorData {
-    code: Option<String>,
-    column_start: Option<u32>,
+    code_snippets: Vec<CodeSnippet>,
     doc_url: Option<String>,
-    file_path: Option<String>,
+    error_code: Option<String>,
     kind: ErrorKind,
-    line_number: Option<u32>,
     title: Option<String>,
 }
 
@@ -27,12 +27,10 @@ impl FriendlyError {
         FriendlyError {
             data: {
                 ErrorData {
-                    code: None,
-                    column_start: None,
+                    code_snippets: Vec::new(),
                     doc_url: None,
-                    file_path: None,
+                    error_code: None,
                     kind: ErrorKind::Error,
-                    line_number: None,
                     title: None,
                 }
             },
@@ -40,13 +38,8 @@ impl FriendlyError {
         }
     }
 
-    pub fn code<S: Into<String>>(mut self, code: S) -> Self {
-        self.data.code = Some(code.into());
-        self
-    }
-
-    pub fn column_start(mut self, column_start: u32) -> Self {
-        self.data.column_start = Some(column_start);
+    pub fn add_code_snippet(mut self, code_snippet: CodeSnippet) -> Self {
+        self.data.code_snippets.push(code_snippet);
         self
     }
 
@@ -55,18 +48,13 @@ impl FriendlyError {
         self
     }
 
-    pub fn file_path<S: Into<String>>(mut self, file_path: S) -> Self {
-        self.data.file_path = Some(file_path.into());
+    pub fn error_code<S: Into<String>>(mut self, code: S) -> Self {
+        self.data.error_code = Some(code.into());
         self
     }
 
     pub fn kind(mut self, kind: ErrorKind) -> Self {
         self.data.kind = kind;
-        self
-    }
-
-    pub fn line_number(mut self, line_number: u32) -> Self {
-        self.data.line_number = Some(line_number);
         self
     }
 
@@ -77,7 +65,6 @@ impl FriendlyError {
 
     pub fn build(mut self) -> String {
         self.print_header();
-        self.print_file_url();
         self.print_doc_url();
         self.output
     }

@@ -7,7 +7,7 @@ impl FriendlyError {
     fn gen_error(&mut self) -> (String, usize) {
         let mut output = String::new();
         output.push_str("--- Error");
-        if let Some(code) = &self.data.code {
+        if let Some(code) = &self.data.error_code {
             output.push('(');
             output.push_str(code);
             output.push(')');
@@ -19,7 +19,7 @@ impl FriendlyError {
     fn gen_warning(&mut self) -> (String, usize) {
         let mut output = String::new();
         output.push_str("--- Warning");
-        if let Some(code) = &self.data.code {
+        if let Some(code) = &self.data.error_code {
             output.push('(');
             output.push_str(code);
             output.push(')');
@@ -79,7 +79,7 @@ mod test {
     #[test]
     fn header_with_code() {
         colored::control::set_override(false);
-        let mut error = FriendlyError::new().code("E123");
+        let mut error = FriendlyError::new().error_code("E123");
         error.print_header();
         assert_eq!(
             error.output,
@@ -90,7 +90,9 @@ mod test {
     #[test]
     fn header_with_title_and_code() {
         colored::control::set_override(false);
-        let mut error = FriendlyError::new().title("Error message").code("E123");
+        let mut error = FriendlyError::new()
+            .title("Error message")
+            .error_code("E123");
         error.print_header();
         assert_eq!(
             error.output,
