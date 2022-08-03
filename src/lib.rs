@@ -1,4 +1,4 @@
-pub use code_snippet::CodeSnippet;
+pub use code_snippet::FriendlyCodeSnippet;
 
 mod code_snippet;
 mod description;
@@ -14,7 +14,7 @@ pub enum ErrorKind {
 }
 
 struct ErrorData {
-    code_snippets: Vec<CodeSnippet>,
+    code_snippets: Vec<FriendlyCodeSnippet>,
     description: Option<String>,
     doc_url: Option<String>,
     error_code: Option<String>,
@@ -46,7 +46,7 @@ impl FriendlyError {
         }
     }
 
-    pub fn add_code_snippet(mut self, code_snippet: CodeSnippet) -> Self {
+    pub fn add_code_snippet(mut self, code_snippet: FriendlyCodeSnippet) -> Self {
         self.data.code_snippets.push(code_snippet);
         self
     }
