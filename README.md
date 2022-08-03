@@ -25,13 +25,12 @@ Here's the general format for error messages:
 
 text explaining the error
 
-filepath:line:column
-
+    filepath:line:column
     |
  72 | function hello_world() {
     |          ^^^^^^^^^^^
 
-Suggestion (e.g., try changing "hello_world" to "helloWorld")
+  --> try changing "hello_world" to "helloWorld"
 
 Explanation. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
@@ -80,16 +79,17 @@ let error_message = FriendlyError::new()
 This will produce the following error message:
 
 ```txt
---- Error(E1234): variable is undefined -------------------------------------------
+--- Error(E1234): variable is undefined ---------------------------------------
 
     src/main.rs:1:8
     |
  1  | let x = foo;
     |         ^^^
-      foo is not defined
 
-    Try defining foo before using it. All variables must be defined before they're
-    used.
+  --> foo is not defined.
 
-    To learn more, read the docs at https://github.com/Nick-Mazuk/friendly-errors
+Try defining foo before using it. All variables must be defined before they're
+used.
+
+To learn more, read the docs at https://github.com/Nick-Mazuk/friendly-errors
 ```
