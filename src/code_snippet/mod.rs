@@ -49,7 +49,7 @@ fn get_digit_count(mut number: usize) -> usize {
     digits
 }
 
-fn get_line_number_string(line_number: usize, indent: usize) -> String {
+fn get_line_number_prefix(line_number: usize, indent: usize) -> String {
     let number = line_number.to_string();
     let mut output = " ".repeat(indent - 1 - number.len());
     output.push_str(&number);
@@ -64,9 +64,9 @@ fn get_blank_line_prefix(indent: usize) -> String {
 }
 
 impl FriendlyCodeSnippet {
-    pub fn new(file_contents: String) -> Self {
+    pub fn new<S: Into<String>>(file_contents: S) -> Self {
         FriendlyCodeSnippet {
-            file_contents,
+            file_contents: file_contents.into(),
             file_path: None,
             index_start: None,
             index_end: None,
@@ -187,6 +187,11 @@ impl FriendlyCodeSnippet {
         if self.line_start_start_index.unwrap() > self.line_end_start_index.unwrap() {
             return Err(FriendlyCodeSnippetError::InvalidEndPosition);
         }
+        if self.line_start_start_index.unwrap() == self.line_end_start_index.unwrap()
+            && self.index_start.unwrap() >= self.index_end.unwrap()
+        {
+            return Err(FriendlyCodeSnippetError::InvalidEndPosition);
+        }
         Ok(true)
     }
 
@@ -230,6 +235,30 @@ impl FriendlyCodeSnippet {
         output
     }
 
+    pub(crate) fn build_lines(&self) -> String {
+        let mut output = String::new();
+        if self.line_start_start_index.unwrap() == self.line_end_start_index.unwrap() {
+            output.push_str(&get_line_number_prefix(
+                self.line_start.unwrap(),
+                self.indent_size.unwrap(),
+            ));
+            let mut index = self.line_start_start_index.unwrap();
+            while index < self.file_contents.len() && !self.file_contents[index..index + 1].eq("\n")
+            {
+                index += 1;
+            }
+            let line_contents = &self.file_contents[self.line_start_start_index.unwrap()..index];
+            output.push_str(line_contents);
+            output.push('\n');
+            output.push_str(&get_blank_line_prefix(self.indent_size.unwrap()));
+            output.push_str(&" ".repeat(self.index_start.unwrap()));
+            output.push_str(&"^".repeat(self.index_end.unwrap() - self.index_start.unwrap()));
+            output.push('\n')
+        }
+
+        output
+    }
+
     pub(crate) fn build_caption(&self) -> String {
         if let Some(caption) = &self.caption {
             let mut output = " ".repeat(self.indent_size.unwrap() - 2);
@@ -255,6 +284,7 @@ impl FriendlyCodeSnippet {
         let mut output = String::new();
         output.push_str(&self.build_file_url());
         output.push_str(&self.build_caption());
+        output.push_str(&self.build_lines());
         Ok(output)
     }
 }
@@ -262,31 +292,32 @@ impl FriendlyCodeSnippet {
 #[cfg(test)]
 mod test {
     use super::*;
+    use indoc::indoc;
 
     #[test]
     fn calc_line_start_start_index_test() {
-        let code = "\nfn main() {\n    println!(\"Hello, world!\");\n}\n".to_string();
+        let code = "\nfn main() {\n    println!(\"Hello, world!\");\n}\n";
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_start(1);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(1);
         friendly_code_snippet.calc_line_start_start_index();
         assert_eq!(friendly_code_snippet.line_start_start_index, Ok(0));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_start(2);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(2);
         friendly_code_snippet.calc_line_start_start_index();
         assert_eq!(friendly_code_snippet.line_start_start_index, Ok(1));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_start(3);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(3);
         friendly_code_snippet.calc_line_start_start_index();
         assert_eq!(friendly_code_snippet.line_start_start_index, Ok(13));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_start(0);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(0);
         friendly_code_snippet.calc_line_start_start_index();
         assert_eq!(
             friendly_code_snippet.line_start_start_index,
             Err(CalculatedFieldError::Invalid)
         );
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_start(100);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(100);
         friendly_code_snippet.calc_line_start_start_index();
         assert_eq!(
             friendly_code_snippet.line_start_start_index,
@@ -303,21 +334,21 @@ mod test {
 
     #[test]
     fn calc_line_end_start_index_test() {
-        let code = "\nfn main() {\n    println!(\"Hello, world!\");\n}\n".to_string();
+        let code = "\nfn main() {\n    println!(\"Hello, world!\");\n}\n";
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_end(1);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_end(1);
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(friendly_code_snippet.line_end_start_index, Ok(0));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_end(2);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_end(2);
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(friendly_code_snippet.line_end_start_index, Ok(1));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_end(3);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_end(3);
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(friendly_code_snippet.line_end_start_index, Ok(13));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_end(0);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_end(0);
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
             friendly_code_snippet.line_end_start_index,
@@ -334,17 +365,42 @@ mod test {
 
     #[test]
     fn validate_inputs_test() {
-        let code = "\nfn main() {\n    println!(\"Hello, world!\");\n}\n".to_string();
+        let code = "\nfn main() {\n    println!(\"Hello, world!\");\n}\n";
 
         // everything is valid
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone())
-            .line_start(1)
-            .line_end(2);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(1).line_end(2);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(friendly_code_snippet.validate_inputs(), Ok(true));
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_start(2);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .line_start(1)
+            .line_end(1)
+            .index_start(3)
+            .index_end(4);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        assert_eq!(friendly_code_snippet.validate_inputs(), Ok(true));
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .line_start(1)
+            .line_end(2)
+            .index_start(4)
+            .index_end(4);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        assert_eq!(friendly_code_snippet.validate_inputs(), Ok(true));
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .line_start(1)
+            .line_end(2)
+            .index_start(3)
+            .index_end(4);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        assert_eq!(friendly_code_snippet.validate_inputs(), Ok(true));
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(2);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
@@ -352,7 +408,7 @@ mod test {
             Err(FriendlyCodeSnippetError::MissingEndPosition)
         );
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone()).line_end(2);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_end(2);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
@@ -360,9 +416,7 @@ mod test {
             Err(FriendlyCodeSnippetError::MissingStartPosition)
         );
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone())
-            .line_start(0)
-            .line_end(2);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(0).line_end(2);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
@@ -370,9 +424,7 @@ mod test {
             Err(FriendlyCodeSnippetError::InvalidStartPosition)
         );
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone())
-            .line_start(1)
-            .line_end(100);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(1).line_end(100);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
@@ -381,6 +433,30 @@ mod test {
         );
 
         let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(2).line_end(1);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        assert_eq!(
+            friendly_code_snippet.validate_inputs(),
+            Err(FriendlyCodeSnippetError::InvalidEndPosition)
+        );
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .line_start(2)
+            .line_end(2)
+            .index_start(4)
+            .index_end(4);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        assert_eq!(
+            friendly_code_snippet.validate_inputs(),
+            Err(FriendlyCodeSnippetError::InvalidEndPosition)
+        );
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .line_start(2)
+            .line_end(2)
+            .index_start(4)
+            .index_end(3);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
@@ -404,12 +480,12 @@ mod test {
     }
 
     #[test]
-    fn get_line_number_string_test() {
-        assert_eq!(get_line_number_string(1, 4), "  1 | ");
-        assert_eq!(get_line_number_string(2, 4), "  2 | ");
-        assert_eq!(get_line_number_string(20, 4), " 20 | ");
-        assert_eq!(get_line_number_string(200, 4), "200 | ");
-        assert_eq!(get_line_number_string(200, 5), " 200 | ");
+    fn get_line_number_prefix_test() {
+        assert_eq!(get_line_number_prefix(1, 4), "  1 | ");
+        assert_eq!(get_line_number_prefix(2, 4), "  2 | ");
+        assert_eq!(get_line_number_prefix(20, 4), " 20 | ");
+        assert_eq!(get_line_number_prefix(200, 4), "200 | ");
+        assert_eq!(get_line_number_prefix(200, 5), " 200 | ");
     }
 
     #[test]
@@ -418,7 +494,7 @@ mod test {
         assert_eq!(get_blank_line_prefix(5), "     | ");
         assert_eq!(
             get_blank_line_prefix(7).len(),
-            get_line_number_string(1, 7).len()
+            get_line_number_prefix(1, 7).len()
         );
     }
 
@@ -476,6 +552,47 @@ mod test {
                 .set_indent_size(8)
                 .build_file_url(),
             "        hello.rs:24:4\n"
+        );
+    }
+
+    #[test]
+    fn build_lines_test() {
+        let code = indoc! {
+            "
+            fn main() {
+                println!(\"Hello, world!\");
+            }
+            "
+        };
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .set_file_path("hello.rs")
+            .line_start(1)
+            .index_start(3)
+            .line_end(1)
+            .index_end(7);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        friendly_code_snippet.validate_inputs().unwrap();
+        friendly_code_snippet.calc_indent_size();
+        assert_eq!(
+            friendly_code_snippet.build_lines(),
+            "  1 | fn main() {\n    |    ^^^^\n"
+        );
+
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code)
+            .set_file_path("hello.rs")
+            .line_start(2)
+            .index_start(4)
+            .line_end(2)
+            .index_end(11);
+        friendly_code_snippet.calc_line_start_start_index();
+        friendly_code_snippet.calc_line_end_start_index();
+        friendly_code_snippet.validate_inputs().unwrap();
+        friendly_code_snippet.calc_indent_size();
+        assert_eq!(
+            friendly_code_snippet.build_lines(),
+            "  2 |     println!(\"Hello, world!\");\n    |     ^^^^^^^\n"
         );
     }
 
