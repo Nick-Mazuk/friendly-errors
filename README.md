@@ -66,14 +66,17 @@ let error_message = FriendlyError::new()
         FriendlyCodeSnippet::new()
             .filepath("src/main.rs")
             .contents("let x = foo;")
-            .line(1)
+            .line_start(1)
             .index_start(8)
+            .line_end(1)
             .index_end(10)
             .text("let x = foo;")
             .caption("foo is not defined")
     )
     .add_suggestion("Try defining foo before using it. All variables must be defined before they're used.")
     .doc_url("https://github.com/Nick-Mazuk/friendly-errors")
+    .build() // returns a Result as to provide errors if not all required fields are set
+    .unwrap();
 ```
 
 This will produce the following error message:
