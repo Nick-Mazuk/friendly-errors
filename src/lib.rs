@@ -1,4 +1,4 @@
-pub use code_snippet::FriendlyCodeSnippet;
+pub use code_snippet::{FriendlyCodeSnippet, FriendlyCodeSnippetError};
 
 mod code_snippet;
 mod description;
@@ -6,6 +6,7 @@ mod doc_url;
 mod header;
 mod summary;
 
+#[derive(PartialEq, Debug, Clone)]
 pub enum ErrorKind {
     Error,
     Warning,
@@ -13,6 +14,7 @@ pub enum ErrorKind {
     CodeStyle,
 }
 
+#[derive(PartialEq, Debug, Clone)]
 struct ErrorData {
     code_snippets: Vec<FriendlyCodeSnippet>,
     description: Option<String>,
