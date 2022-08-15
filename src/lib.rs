@@ -4,6 +4,7 @@ mod code_snippet;
 mod description;
 mod doc_url;
 mod header;
+mod print_snippets;
 mod summary;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -29,6 +30,13 @@ pub struct FriendlyError {
     data: ErrorData,
     pub(crate) output: String,
 }
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum FriendlyErrorError {
+    CodeSnippetError(FriendlyCodeSnippetError),
+}
+
+pub type FriendlyErrorResult = Result<String, FriendlyErrorError>;
 
 impl FriendlyError {
     pub fn new() -> Self {
@@ -83,12 +91,13 @@ impl FriendlyError {
         self
     }
 
-    pub fn build(mut self) -> String {
+    pub fn build(mut self) -> FriendlyErrorResult {
         self.print_header();
         self.print_summary();
+        self.print_code_snippets()?;
         self.print_description();
         self.print_doc_url();
-        self.output
+        Ok(self.output)
     }
 
     #[cfg(test)]

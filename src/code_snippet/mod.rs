@@ -107,6 +107,7 @@ impl FriendlyCodeSnippet {
         self.calc_line_start_start_index();
         self.calc_line_end_start_index();
         self.validate_inputs()?;
+        self.calc_indent_size();
         Ok(String::new())
     }
 
@@ -317,9 +318,7 @@ mod test {
             Err(FriendlyCodeSnippetError::InvalidEndPosition)
         );
 
-        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code.clone())
-            .line_start(2)
-            .line_end(1);
+        let mut friendly_code_snippet = FriendlyCodeSnippet::new(code).line_start(2).line_end(1);
         friendly_code_snippet.calc_line_start_start_index();
         friendly_code_snippet.calc_line_end_start_index();
         assert_eq!(
