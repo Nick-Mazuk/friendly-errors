@@ -1,4 +1,4 @@
-use core::panic;
+use std::cmp::max;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum HighlightKind {
@@ -29,7 +29,7 @@ pub struct FriendlyCodeSnippet {
     // private fields
     line_start_start_index: CalculatedFieldResult<usize>,
     line_end_start_index: CalculatedFieldResult<usize>,
-    indent_size: usize,
+    indent_size: CalculatedFieldResult<usize>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -38,6 +38,15 @@ pub enum FriendlyCodeSnippetError {
     InvalidEndPosition,
     MissingStartPosition,
     MissingEndPosition,
+}
+
+fn get_digit_count(mut number: usize) -> usize {
+    let mut digits = 1;
+    while number >= 10 {
+        digits += 1;
+        number /= 10;
+    }
+    digits
 }
 
 impl FriendlyCodeSnippet {
@@ -55,7 +64,7 @@ impl FriendlyCodeSnippet {
             // private fields
             line_start_start_index: Err(CalculatedFieldError::NotCalculated),
             line_end_start_index: Err(CalculatedFieldError::NotCalculated),
-            indent_size: 4,
+            indent_size: Err(CalculatedFieldError::NotCalculated),
         }
     }
 
@@ -172,6 +181,18 @@ impl FriendlyCodeSnippet {
             return Err(FriendlyCodeSnippetError::InvalidEndPosition);
         }
         Ok(true)
+    }
+
+    pub(crate) fn calc_indent_size(&mut self) {
+        let longest_line_number = max(
+            self.line_start_start_index.unwrap(),
+            self.line_end_start_index.unwrap(),
+        );
+        let default_indent_size = 4;
+        self.indent_size = Ok(max(
+            get_digit_count(longest_line_number) + 1,
+            default_indent_size,
+        ));
     }
 }
 
@@ -305,5 +326,19 @@ mod test {
             friendly_code_snippet.validate_inputs(),
             Err(FriendlyCodeSnippetError::InvalidEndPosition)
         );
+    }
+
+    #[test]
+    fn get_digit_count_test() {
+        assert_eq!(get_digit_count(0), 1);
+        assert_eq!(get_digit_count(1), 1);
+        assert_eq!(get_digit_count(10), 2);
+        assert_eq!(get_digit_count(100), 3);
+        assert_eq!(get_digit_count(1000), 4);
+        assert_eq!(get_digit_count(500), 3);
+        assert_eq!(get_digit_count(99), 2);
+        assert_eq!(get_digit_count(101), 3);
+        assert_eq!(get_digit_count(999), 3);
+        assert_eq!(get_digit_count(1001), 4);
     }
 }
